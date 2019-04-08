@@ -13,7 +13,7 @@ BOT_NAME = 'BZhanSpider'
 
 SPIDER_MODULES = ['BZhanSpider.spiders']
 NEWSPIDER_MODULE = 'BZhanSpider.spiders'
-
+FEED_EXPORT_ENCODING = 'utf-8'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'BZhanSpider (+http://www.yourdomain.com)'
@@ -64,9 +64,9 @@ ROBOTSTXT_OBEY = True
 
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    'BZhanSpider.pipelines.BzhanspiderPipeline': 300,
-#}
+ITEM_PIPELINES = {
+   'BZhanSpider.pipelines.BzhanspiderPipeline': 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/autothrottle.html
