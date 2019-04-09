@@ -4,9 +4,17 @@
 #
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
+import time
 
 from scrapy import signals
-from settings import USER_AGENT_LIST
+from scrapy.http import HtmlResponse
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from twisted.conch.telnet import EC
+
 """
 是和Scrapy的请求/响应处理相关联的框架。
 中间件处理request和response
@@ -73,6 +81,7 @@ class BzhanspiderDownloaderMiddleware(object):
         return s
 
     def process_request(self, request, spider):
+        print("-----------------------------BzhanspiderDownloaderMiddleware-----------------------------")
         # Called for each request that goes through the downloader
         # middleware.
 
@@ -105,3 +114,56 @@ class BzhanspiderDownloaderMiddleware(object):
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
+
+
+class SeleniumMiddleware(object):
+    def __init__(self,timeout=25):
+
+        # 设置selenium不加载图片,固定写法
+        chrome_opt = webdriver.ChromeOptions()
+        prefs = {
+                'profile.default_content_setting_values': {
+                    'images': 2,  # 禁用图片的加载
+                    # 'javascript': 2  # 禁用js，可能会导致通过js加载的互动数抓取失效
+                }
+            }
+        # prefs = {'profile.managed_default_content_settings.images': 2}
+        chrome_opt.add_experimental_option('prefs', prefs)
+        self.browser = webdriver.Chrome(chrome_options=chrome_opt)
+
+        self.timeout = timeout
+        # self.browser = webdriver.Firefox()
+        # self.browser = webdriver.Chrome()
+        # self.browser.minimize_window()
+        self.browser.set_window_size(900, 900)
+        # self.browser.implicitly_wait(20)
+        # self.browser.set_page_load_timeout(25)
+        self.browser.set_page_load_timeout(self.timeout)
+        self.wait = WebDriverWait(self.browser, self.timeout)
+
+
+    def __del__(self):
+        self.browser.close()
+
+    def process_request(self, request, spider):
+        """
+        用ChromeDriver抓取页面
+        :param request: Request对象
+        :param spider: Spider对象
+        :return: HtmlResponse
+        """
+
+        # print('******ChromeDriver is Starting******')
+        print('-------------------ChromeDriver is Starting---------------------------')
+        try:
+            self.browser.get(request.url)
+            self.browser.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+        except TimeoutException as e:
+            print('-------------------------请求超时------------------------')
+            self.browser.execute_script('window.stop()')
+            return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
+                            request=request, status=500)
+        else:
+            time.sleep(10)
+            return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
+                        request=request,status=200)

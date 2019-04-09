@@ -15,6 +15,16 @@ SPIDER_MODULES = ['BZhanSpider.spiders']
 NEWSPIDER_MODULE = 'BZhanSpider.spiders'
 FEED_EXPORT_ENCODING = 'utf-8'
 
+
+# ----------- selenium参数配置 -------------
+SELENIUM_TIMEOUT = 25
+# selenium浏览器的超时时间，单位秒
+LOAD_IMAGE = True
+# 是否下载图片
+WINDOW_HEIGHT = 900
+# 浏览器窗口大小
+WINDOW_WIDTH = 900
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'BZhanSpider (+http://www.yourdomain.com)'
 
@@ -46,15 +56,16 @@ ROBOTSTXT_OBEY = True
 
 # Enable or disable spider middlewares
 # See https://doc.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
-#    'BZhanSpider.middlewares.BzhanspiderSpiderMiddleware': 543,
-#}
+# SPIDER_MIDDLEWARES = {
+#    # 'BZhanSpider.middlewares.BzhanspiderSpiderMiddleware': 543,
+# }
 
 # Enable or disable downloader middlewares
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
-#DOWNLOADER_MIDDLEWARES = {
-#    'BZhanSpider.middlewares.BzhanspiderDownloaderMiddleware': 543,
-#}
+DOWNLOADER_MIDDLEWARES = {
+   'BZhanSpider.middlewares.BzhanspiderDownloaderMiddleware': 543,
+   'BZhanSpider.middlewares.SeleniumMiddleware': 542,
+}
 
 # Enable or disable extensions
 # See https://doc.scrapy.org/en/latest/topics/extensions.html
@@ -65,7 +76,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   'BZhanSpider.pipelines.BzhanspiderPipeline': 300,
+   'BZhanSpider.pipelines.BzhanspiderPipeline': 200,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
