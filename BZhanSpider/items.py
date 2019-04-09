@@ -24,6 +24,7 @@ class BzhanspiderItem(scrapy.Item):
     danmu_count = scrapy.Field()#弹幕数
     like_count = scrapy.Field()#点赞数
     corn_count = scrapy.Field()#投币数
+    favorite_count = scrapy.Field()#收藏数
     text_introduce = scrapy.Field()#文字介绍
     keywords_tag = scrapy.Field()#关键词tag
     up_comments = scrapy.Field()#UP主与网友互动内容

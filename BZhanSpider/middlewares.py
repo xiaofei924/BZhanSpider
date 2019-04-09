@@ -164,6 +164,6 @@ class SeleniumMiddleware(object):
             return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
                             request=request, status=500)
         else:
-            time.sleep(10)
+            time.sleep(2)
             return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
                         request=request,status=200)

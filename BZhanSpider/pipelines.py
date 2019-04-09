@@ -21,7 +21,24 @@ class BzhanspiderPipeline(object):
         # 创建excel，填写表头
         self.wb = Workbook()
         self.ws = self.wb.active
-        title = ['标题','栏目（舞蹈、鬼畜、科技等）','发表时间','排名','播放量','弹幕数','点赞数','投币数','收藏数','文字介绍','关键词tag','UP主与网友互动内容','UP主','UP主简介','认证分类','关注数','粉丝数','播放数']
+        title = ['标题',
+                 '栏目（舞蹈、鬼畜、科技等）',
+                 '发表时间',
+                 '排名',
+                 '播放量',
+                 '弹幕数',
+                 '点赞数',
+                 '投币数',
+                 '收藏数',
+                 '文字介绍',
+                 '关键词tag',
+                 'UP主与网友互动内容',
+                 'UP主',
+                 'UP主简介',
+                 '认证分类',
+                 '关注数',
+                 '粉丝数',
+                 '播放数']
         self.ws.append(title)
 
     def process_item(self, item, spider):
@@ -39,12 +56,13 @@ class BzhanspiderPipeline(object):
         item['danmu_count'],
         item['like_count'],
         item['corn_count'],
+        item['favorite_count'],
         item['text_introduce'],
         item['keywords_tag'],
         item['up_comments'],
         item['up_name'],
-        item['up_certification'],
         item['up_introduction'],
+        item['up_certification'],
         item['up_focus_count'],
         item['up_fans_count'],
         item['up_play_count']]

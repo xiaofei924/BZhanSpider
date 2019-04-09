@@ -51,7 +51,8 @@ class BzhanSpider(scrapy.Spider):
         danmu_count = response.xpath('//div[@class="video-data"]/span[@class="dm"]/text()').extract_first()
         like_count = response.xpath('/html/body/div[3]/div/div[1]/div[3]/div[1]/span[1]/text()').extract_first()
         corn_count = response.xpath('/html/body/div[3]/div/div[1]/div[3]/div[1]/span[2]/text()').extract_first()
-        text_introduce = response.xpath('/html/body/div[3]/div/div[1]/div[4]/div[1]//text()').extract()
+        favorite_count = response.xpath('/html/body/div[3]/div/div[1]/div[3]/div[1]/span[3]/text()').extract_first()
+        text_introduce = response.xpath('/html/body/div[3]/div/div[1]/div[4]/div[1]/text()').extract()
         keywords_tag = response.xpath('/html/body/div[3]/div/div[1]/div[5]/ul//text()').extract()
 
         if len(text_introduce) > 0:
@@ -100,6 +101,7 @@ class BzhanSpider(scrapy.Spider):
                                                                                          'danmu_count':danmu_count,
                                                                                          'like_count':like_count,
                                                                                          'corn_count':corn_count,
+                                                                                         'favorite_count':favorite_count,
                                                                                          'text_introduce':text_introduce,
                                                                                          'keywords_tag':keywords_tag,
                                                                                          'up_comments':up_comments,
@@ -138,6 +140,7 @@ class BzhanSpider(scrapy.Spider):
         danmu_count = response.meta['danmu_count']
         like_count = response.meta['like_count']
         corn_count = response.meta['corn_count']
+        favorite_count = response.meta['favorite_count']
         text_introduce = response.meta['text_introduce']
         keywords_tag = response.meta['keywords_tag']
         up_comments = response.meta['up_comments']
@@ -162,12 +165,13 @@ class BzhanSpider(scrapy.Spider):
         print("danmu_count---------------------" + str(danmu_count))
         print("like_count---------------------" + str(like_count))
         print("corn_count---------------------" + str(corn_count))
+        print("favorite_count---------------------" + str(favorite_count))
         print("text_introduce---------------------" + str(text_introduce))
         print("keywords_tag---------------------" + str(keywords_tag))
         print("up_comments---------------------" + str(up_comments))
         print("up_name---------------------" + str(up_name))
-        print("up_certification---------------------" + str(up_certification))
         print("up_introduction---------------------" + str(up_introduction))
+        print("up_certification---------------------" + str(up_certification))
         print("up_focus_count---------------------" + str(up_focus_count))
         print("up_fans_count---------------------" + str(up_fans_count))
         print("up_play_count---------------------" + str(up_play_count))
@@ -180,13 +184,14 @@ class BzhanSpider(scrapy.Spider):
         item['danmu_count'] = danmu_count
         item['like_count'] = like_count
         item['corn_count'] = corn_count
+        item['favorite_count'] = favorite_count
         item['text_introduce'] = text_introduce
         item['keywords_tag'] = keywords_tag
         item['up_comments'] = up_comments
 
         item['up_name'] = up_name
-        item['up_certification'] = up_certification
         item['up_introduction'] = up_introduction
+        item['up_certification'] = up_certification
         item['up_focus_count'] = up_focus_count
         item['up_fans_count'] = up_fans_count
         item['up_play_count'] = up_play_count
