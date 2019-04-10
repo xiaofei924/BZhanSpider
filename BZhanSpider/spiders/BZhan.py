@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 import json
+from builtins import print
+import time
 
 import scrapy
+import self as self
+
 from BZhanSpider.items import BzhanspiderItem
 from selenium import webdriver
+
+from BZhanSpider.middlewares import SeleniumMiddleware
+
 """
 name:scrapy唯一定位实例的属性，必须唯一
 allowed_domains：允许爬取的域名列表，不设置表示允许爬取所有
@@ -30,13 +37,28 @@ class BzhanSpider(scrapy.Spider):
     # comment_url = 'https://api.bilibili.com/x/v2/reply?callback=jQuery17202434448397650979_1554717195061&jsonp=jsonp&pn=2&type=1&oid=48465492&sort=0&_=1554718673887'
     # # start_urls = [start_url]
     # # video / av48323686
+    video_comment_url = 'https://api.bilibili.com/x/v2/reply?callback=jQuery17208525034767588849_1554860847400&jsonp=jsonp&pn=2&type=1&oid=48323686&sort=0&_=1554863787356'
+    self.reply_comment_base_url = 'https://api.bilibili.com/x/v2/reply/reply?jsonp=jsonp&pn=%s&type=1&oid=%s&ps=10&root=%s'
+    self.video_comment_url = 'https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=1&type=1&oid=48323686&sort=0'
 
+    self.is_save = False
+    self.reply_comment_type = -1
+    # 视频评论
+    video_comment = 0
+    # 网友的回复
+    net_friend_reply_comment = 1
+    # up主的回复
+    up_reply_comment = 2
 
+    self.video_map = {}
+    self.vnet_friend_reply_map = {}
+    self.vup_reply_map = {}
     """
     start_urls主请求的回调，在里面解析数据并存储到items中去
     """
     def parse(self, response):#默认回调
         print('--------------parse start-----------------')
+        # video_comment_url = 'https://api.bilibili.com/x/v2/reply?callback=jQuery17208525034767588849_1554860847400&jsonp=jsonp&pn=2&type=1&oid=48323686&sort=0&_=1554863787356'
 
         # print(response.text)
         item = BzhanspiderItem()
@@ -54,6 +76,14 @@ class BzhanSpider(scrapy.Spider):
         favorite_count = response.xpath('/html/body/div[3]/div/div[1]/div[3]/div[1]/span[3]/text()').extract_first()
         text_introduce = response.xpath('/html/body/div[3]/div/div[1]/div[4]/div[1]/text()').extract()
         keywords_tag = response.xpath('/html/body/div[3]/div/div[1]/div[5]/ul//text()').extract()
+
+        comment_page_count = response.xpath('//div[@class="header-page paging-box"]/a[@class="tcd-number"]//text()').extract()[-1]
+        print(comment_page_count)
+
+        if comment_page_count is not None:
+            comment_page_count = int(comment_page_count)
+        else:
+            comment_page_count = 0
 
         if len(text_introduce) > 0:
             text_introduce = '\n'.join(text_introduce)
@@ -90,10 +120,16 @@ class BzhanSpider(scrapy.Spider):
         print('-------------------' + str(up_page_url))
         print(url)
 
+        #请求评论的接口直接获取json数据进行解析
+        if comment_page_count > 0:
+            current_page = 1
+            yield scrapy.Request(url=self.video_comment_url, callback=self.video_comment_parse,dont_filter=True, meta={'is_request_without_browser':True,
+                                                                                                              'comment_page_count':comment_page_count,
+                                                                                                              'current_page':current_page})
 
         # DEBUG: Filtered offsiterequest to因为Request中请求的URL和allowed_domains中定义的域名冲突，所以将Request中请求的URL过滤掉了，无法请求
         # 在Request请求参数中，设置dont_filter = True, Request中请求的URL将不通过allowed_domains过滤。
-        yield scrapy.Request(url=url, callback=self.parse_up_page,dont_filter=True,meta={'title':title,
+        yield scrapy.Request(url=url, callback=self.up_page_parse,dont_filter=True,meta={'title':title,
                                                                                          'column':column,
                                                                                          'publish_date':publish_date,
                                                                                          'ranking':ranking,
@@ -105,7 +141,6 @@ class BzhanSpider(scrapy.Spider):
                                                                                          'text_introduce':text_introduce,
                                                                                          'keywords_tag':keywords_tag,
                                                                                          'up_comments':up_comments,
-
 
         })
 
@@ -122,7 +157,7 @@ class BzhanSpider(scrapy.Spider):
     """
     up主的主页请求回调，处理up主的主页的数据
     """
-    def parse_up_page(self, response):
+    def up_page_parse(self, response):
         print('-----------------up_page_parse start------------------')
         # print(response.text)
         # return
@@ -195,10 +230,78 @@ class BzhanSpider(scrapy.Spider):
         item['up_focus_count'] = up_focus_count
         item['up_fans_count'] = up_fans_count
         item['up_play_count'] = up_play_count
+        # self.is_save = True
+
+        #回调item数据给pipelines
         yield item
+
+        # #关闭浏览器
+        # SeleniumMiddleware.__del__(self)
+
         print('--------------------up_page_parse end-------------------')
 
 
 
+    """
+    请求视频的评论，并分类：视频评论、网友回复、up主回复
+    """
+    def video_comment_parse(self, response):
+        print('-----------------------------video_comment_parse start-----------------------------')
+        if response is None:
+            return
+
+        status = response.status
+        if status != 200:
+            print('request failed, status: ' + status)
+            return
+        # 回复评论的的url
+        reply_comment_url = 'https://api.bilibili.com/x/v2/reply/reply?callback=jQuery17208938958981882081_1554882206023&jsonp=jsonp&pn=1&type=1&oid=48323686&ps=10&root=1503675439&=1554890310602'
+        reply_comment_url = 'https://api.bilibili.com/x/v2/reply/reply?jsonp=jsonp&pn=1&type=1&oid=48323686&ps=10&root=1503675439'
 
 
+        try:
+            comment_page_count = 0
+            current_page = 1
+            if response.meta.has_key('current_page'):
+                current_page = response.meta['current_page']
+            if response.meta.has_key('comment_page_count'):
+                comment_page_count = response.meta['comment_page_count']
+            resp = json.loads(response.body, encoding='utf-8')
+            print(resp.has_key('data'))
+            if not resp.has_key('data'):
+                return
+            data = resp['data']
+            # 热门评论
+            hots = data['hots']
+            replies = data['replies']
+
+            hot_comments_url = 'https://api.bilibili.com/x/v2/reply?callback=&jsonp=jsonp&pn=1&type=1&oid=48323686&sort=2'
+
+            for hot in hots:
+                pass
+
+            self.add_comments_to_map(hots)
+            self.add_comments_to_map(replies)
+            if current_page<=comment_page_count:
+                yield scrapy.Request(url=self.video_comment_url, callback=self.video_comment_parse, dont_filter=True,
+                             meta={'is_request_without_browser': True,
+                                   'comment_page_count': comment_page_count,
+                                   'current_page':current_page})
+
+        except Exception as e:
+            print('评论抓取失败, 失败原因' + str(e))
+
+        print('-----------------------------video_comment_parse end-----------------------------')
+
+
+    def add_comments_to_map(replies):
+        if 0 >= len(replies):
+            return
+
+        for reply in replies:
+            ctime = reply['ctime']
+            time = time.strftime('%Y-%m-%d %H:%M:%S', reply['ctime'])
+            content = reply['content']
+            message = content['message']
+
+        pass

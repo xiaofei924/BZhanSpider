@@ -63,8 +63,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable downloader middlewares
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
-   'BZhanSpider.middlewares.BzhanspiderDownloaderMiddleware': 543,
+   # 'BZhanSpider.middlewares.BzhanspiderDownloaderMiddleware': 543,
    'BZhanSpider.middlewares.SeleniumMiddleware': 542,
+}
+#
+# # Configure item pipelines
+ITEM_PIPELINES = {
+   'BZhanSpider.pipelines.BzhanspiderPipeline': 200,
 }
 
 # Enable or disable extensions
@@ -73,11 +78,7 @@ DOWNLOADER_MIDDLEWARES = {
 #    'scrapy.extensions.telnet.TelnetConsole': None,
 #}
 
-# Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
-ITEM_PIPELINES = {
-   'BZhanSpider.pipelines.BzhanspiderPipeline': 200,
-}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/autothrottle.html

@@ -67,7 +67,10 @@ class BzhanspiderPipeline(object):
         item['up_fans_count'],
         item['up_play_count']]
         self.ws.append(line)
-        self.wb.save('BZhanVideoInfo.xlsx')
+
+        # if spider.is_save:
+        #     self.wb.save('BZhanVideoInfo.xlsx')
+
         return item
 
 

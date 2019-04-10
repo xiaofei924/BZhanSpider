@@ -153,17 +153,31 @@ class SeleniumMiddleware(object):
         :return: HtmlResponse
         """
 
-        # print('******ChromeDriver is Starting******')
-        print('-------------------ChromeDriver is Starting---------------------------')
+        is_request_without_browser = False
+
         try:
-            self.browser.get(request.url)
-            self.browser.execute_script('window.scrollTo(0, document.body.scrollHeight)')
-        except TimeoutException as e:
-            print('-------------------------请求超时------------------------')
-            self.browser.execute_script('window.stop()')
-            return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
-                            request=request, status=500)
+            is_request_without_browser = request.meta['is_request_without_browser']
+        except Exception:
+            is_request_without_browser = False
+
+        # print('******ChromeDriver is Starting******')
+        if is_request_without_browser:
+            print('-------------------SeleniumMiddleware, no need use browser, just request url: ' + request.url)
+            return None
         else:
-            time.sleep(2)
-            return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
+            print('-------------------SeleniumMiddleware, ChromeDriver is Starting---------------------------')
+            try:
+                self.browser.get(request.url)
+                self.browser.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+            except TimeoutException as e:
+                print('-------------------------请求超时------------------------')
+                self.browser.execute_script('window.stop()')
+                return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
+                            request=request, status=500)
+            else:
+                time.sleep(10)
+                return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
                         request=request,status=200)
+
+    def close_browser(self):
+        self.browser.close()
