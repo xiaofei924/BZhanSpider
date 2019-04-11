@@ -163,6 +163,7 @@ class SeleniumMiddleware(object):
         # print('******ChromeDriver is Starting******')
         if is_request_without_browser:
             print('-------------------SeleniumMiddleware, no need use browser, just request url: ' + request.url)
+            time.sleep(1)
             return None
         else:
             print('-------------------SeleniumMiddleware, ChromeDriver is Starting---------------------------')
@@ -175,7 +176,7 @@ class SeleniumMiddleware(object):
                 return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
                             request=request, status=500)
             else:
-                time.sleep(10)
+                time.sleep(1)
                 return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
                         request=request,status=200)
 

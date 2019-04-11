@@ -37,6 +37,11 @@ class BzhanspiderItem(scrapy.Item):
     up_fans_count = scrapy.Field()#up主粉丝数
     up_play_count = scrapy.Field()#up主播放数
 
+    video_reply_map = scrapy.Field()#up主播放数
+    up_reply_map = scrapy.Field()#up主播放数
+    net_friend_reply_map = scrapy.Field()#up主播放数
+
+
 
     """
     标题	
