@@ -121,6 +121,11 @@ class SeleniumMiddleware(object):
 
         # 设置selenium不加载图片,固定写法
         chrome_opt = webdriver.ChromeOptions()
+
+        # headless无界面模式
+        # chrome_opt.add_argument("--headless")
+        # chrome_opt.add_argument("--disable-gpu")
+
         prefs = {
                 'profile.default_content_setting_values': {
                     'images': 2,  # 禁用图片的加载
@@ -135,11 +140,38 @@ class SeleniumMiddleware(object):
         # self.browser = webdriver.Firefox()
         # self.browser = webdriver.Chrome()
         # self.browser.minimize_window()
-        self.browser.set_window_size(900, 900)
+        # self.browser.set_window_size(900, 900)
         # self.browser.implicitly_wait(20)
         # self.browser.set_page_load_timeout(25)
         self.browser.set_page_load_timeout(self.timeout)
         self.wait = WebDriverWait(self.browser, self.timeout)
+
+        # js控制浏览器滚动到底部js
+        self.js = """
+        function scrollToBottom() {
+            var Height = document.body.clientHeight,  //文本高度
+                screenHeight = window.innerHeight,  //屏幕高度
+                INTERVAL = 100,  // 滚动动作之间的间隔时间
+                delta = 500,  //每次滚动距离
+                curScrollTop = 0;    //当前window.scrollTop 值
+            console.info(Height)
+            var scroll = function () {
+                //curScrollTop = document.body.scrollTop;
+                curScrollTop = curScrollTop + delta;
+                window.scrollTo(0,curScrollTop);
+                console.info("偏移量:"+delta)
+                console.info("当前位置:"+curScrollTop)
+            };
+            var timer = setInterval(function () {
+                var curHeight = curScrollTop + screenHeight;
+                if (curHeight >= Height){   //滚动到页面底部时，结束滚动
+                    clearInterval(timer);
+                }
+                scroll();
+            }, INTERVAL)
+        };
+        scrollToBottom()
+        """
 
 
     def __del__(self):
@@ -159,7 +191,6 @@ class SeleniumMiddleware(object):
             is_request_without_browser = request.meta['is_request_without_browser']
         except Exception:
             is_request_without_browser = False
-
         # print('******ChromeDriver is Starting******')
         if is_request_without_browser:
             print('-------------------SeleniumMiddleware, no need use browser, just request url: ' + request.url)
@@ -169,14 +200,15 @@ class SeleniumMiddleware(object):
             print('-------------------SeleniumMiddleware, ChromeDriver is Starting---------------------------')
             try:
                 self.browser.get(request.url)
-                self.browser.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+                # self.browser.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+                self.browser.execute_script(self.js)#滚动到最底部
             except TimeoutException as e:
                 print('-------------------------请求超时------------------------')
                 self.browser.execute_script('window.stop()')
                 return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
                             request=request, status=500)
             else:
-                time.sleep(1)
+                time.sleep(5)
                 return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
                         request=request,status=200)
 

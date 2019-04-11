@@ -15,6 +15,14 @@ from BZhanSpider.replybean import replybean
 
 
 class BzhanspiderPipeline(object):
+    # 网友评论列
+    video_comment_column = 12
+    # up主回复列
+    up_reply_column = 13
+    # 网友互动列
+    net_friend_reply_column = 14
+    #从第几行开始插入数据
+    data_start_row = 3
     def __init__(self):
         # pass
         # 初始化一个文件
@@ -63,10 +71,26 @@ class BzhanspiderPipeline(object):
                      '',
                      '',
                      '']
-        self.ws.append(top_title)
-        self.ws.append(sub_title)
-        self.ws.merge_cells(start_row=1, end_row=1, start_column=12, end_column=14)
-        self.ws.cell(row=1, column=12, value='UP主与网友互动内容')
+        # self.ws.append(sub_title)
+
+        title_len = len(top_title)
+
+        """插入标题"""
+        self.ws.cell(row=1, column=self.video_comment_column).value='UP主与网友互动内容'
+        for i in range(1,title_len+1):
+            if i == 12 or i == 13 or i == 14:
+                self.ws.merge_cells(start_row=1, end_row=1, start_column=self.video_comment_column,
+                                    end_column=self.net_friend_reply_column)
+
+                continue
+            self.ws.merge_cells(start_row=1, end_row=2, start_column=i, end_column=i)
+            self.ws.cell(row=1,column=i).value = top_title[i-1]
+
+        self.ws.cell(row=2, column=self.video_comment_column).value = '网友评论'
+        self.ws.cell(row=2, column=self.up_reply_column).value = 'UP主回复'
+        self.ws.cell(row=2, column=self.net_friend_reply_column).value = '网友互动'
+
+        # self.ws.append(top_title)
 
     def process_item(self, item, spider):
 
@@ -80,25 +104,35 @@ class BzhanspiderPipeline(object):
         if 'video_reply_map' in item:
             video_reply_map = item['video_reply_map']
             print('video_reply_map： \n')
+            video_reply_map_len = len(video_reply_map)
+            row = self.data_start_row#从数据开始行开始插入
             for key in video_reply_map:
                 replybean = video_reply_map[key]
                 print(replybean.to_string())
+                self.ws.cell(row=row, column=self.video_comment_column).value = replybean.get_content()
+                row += 1
             is_commet_or_reply = True
 
         if 'up_reply_map' in item:
             up_reply_map = item['up_reply_map']
             print('up_reply_map： \n')
+            row = self.data_start_row  # 从数据开始行开始插入
             for key in up_reply_map:
                 replybean = up_reply_map[key]
                 print(replybean.to_string())
+                self.ws.cell(row=row, column=self.up_reply_column).value = replybean.get_content()
+                row += 1
             is_commet_or_reply = True
 
         if 'net_friend_reply_map' in item:
             net_friend_reply_map = item['net_friend_reply_map']
             print('net_friend_reply_map： \n')
+            row = self.data_start_row  # 从数据开始行开始插入
             for key in net_friend_reply_map:
                 replybean = net_friend_reply_map[key]
                 print(replybean.to_string())
+                self.ws.cell(row=row, column=self.net_friend_reply_column).value = replybean.get_content()
+                row += 1
             is_commet_or_reply = True
 
         if not is_commet_or_reply:

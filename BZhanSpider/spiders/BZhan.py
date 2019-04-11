@@ -12,6 +12,7 @@ from BZhanSpider.items import BzhanspiderItem
 from selenium import webdriver
 
 from BZhanSpider.middlewares import SeleniumMiddleware
+from urllib import request, parse
 
 """
 name:scrapy唯一定位实例的属性，必须唯一
@@ -30,9 +31,11 @@ class BzhanSpider(scrapy.Spider):
     name = 'BZhan'
     allowed_domains = ['www.bilibili.com/']
 
-    start_urls = ['http://www.bilibili.com/video/av48323686']
+    start_url = input('请输入要抓取B站视频信息的网址, 按回车结束: \n')
+    start_url_parse = parse.urlparse(start_url)
+    start_url_path = start_url_parse.path
+    start_urls = ['http://www.bilibili.com/video/av48323686/']
 
-    # # start_url = input('请输入要抓取B站视频信息的网址, 按回车结束: \n')
     # # https: // api.bilibili.com / x / web - interface / view?aid = 48465492
     # # start_urls = ['https://api.bilibili.com/x/web-interface/view?aid=48465492']#播放界面数据类型json\
     # page_data_url = 'http://www.bilibili.com/video/av48323686'#界面数据，无法获取数量
@@ -53,11 +56,14 @@ class BzhanSpider(scrapy.Spider):
     net_friend_reply_comment = 1
     # up主的回复
     up_reply_comment = 2
+    # 视频所有评论及回复，用于判断是否爬到所有评论及回复来保存数据
+    total_reply_count = 0
 
     # 视频的id
-    oid = '48323686'
-    # 视频发布者up主的id
-    up_mid = '440290'
+    # 从start_url分解出来的path里面过滤
+    start_url_path_split = start_url_path.split('/')[2]  # 分割后获取形如av48323686这个块
+    oid = start_url_path_split[2:]  # 去掉av留下视频id
+    print('---------------------视频id：' + oid + ' ------------------------')
 
     # 视频评论列表
     video_reply_map = collections.OrderedDict()
@@ -71,7 +77,7 @@ class BzhanSpider(scrapy.Spider):
 
     def parse(self, response):  # 默认回调
         print('--------------parse start-----------------')
-        # video_comment_url = 'https://api.bilibili.com/x/v2/reply?callback=jQuery17208525034767588849_1554860847400&jsonp=jsonp&pn=2&type=1&oid=48323686&sort=0&_=1554863787356'
+        # video_comment_url = 'https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=1&type=1&oid=48323686&sort=0'
 
         # print(response.text)
         item = BzhanspiderItem()
@@ -293,7 +299,11 @@ class BzhanSpider(scrapy.Spider):
             # hots = data['hots']
             replies = data['replies']
             page = data['page']
-            total_reply_count = 22
+            upper = data['upper']
+            """所有评论及回复只赋值一次，避免多次赋值导致爬取的和获取的acount数量不匹配导致不能存储"""
+            if self.total_reply_count == 0 and page['acount'] > 0:
+                self.total_reply_count = page['acount']
+            print('------------评论及回复总数： ' + str(self.total_reply_count))
             current_page = page['num']
             item = BzhanspiderItem()
 
@@ -304,7 +314,7 @@ class BzhanSpider(scrapy.Spider):
                 bean = get_reply_bean(reply, oid)
                 # print(bean.to_string())
                 # 视频评论保存
-                if bean.get_mid() == self.up_mid:
+                if bean.get_mid() == upper['mid']:
                     self.up_reply_map[bean.get_rpid_str()] = bean
                 else:
                     self.video_reply_map[bean.get_rpid_str()] = bean
@@ -324,7 +334,7 @@ class BzhanSpider(scrapy.Spider):
             # self.add_comments_to_map(hots)
             # self.add_comments_to_map(replies)
             page = current_page + 1
-            if 2 >= page > 0:
+            if self.total_reply_count >= page > 0:
                 yield scrapy.Request(url=self.video_comment_url % (str(page), self.oid),
                                      callback=self.video_comment_parse,
                                      dont_filter=True,
@@ -381,6 +391,7 @@ class BzhanSpider(scrapy.Spider):
             data = resp['data']
             replies = data['replies']
             page = data['page']
+            upper = data['upper']
 
             comment_reply_current_page = page['num']
             comment_reply_page_count = calculate_comment_page_count(page, False)
@@ -393,7 +404,7 @@ class BzhanSpider(scrapy.Spider):
                 print(bean.to_string())
 
                 # 评论下的回复进行保存，分网友和up主两类
-                if bean.get_mid() == self.up_mid:
+                if bean.get_mid() == upper['mid']:
                     self.up_reply_map[bean.get_rpid_str()] = bean
                 else:
                     self.net_friend_reply_map[bean.get_rpid_str()] = bean
