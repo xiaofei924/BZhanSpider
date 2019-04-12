@@ -9,6 +9,7 @@
 """
 import json
 from openpyxl import Workbook
+from openpyxl.styles import Alignment
 from scrapy.exporters import CsvItemExporter
 
 from BZhanSpider.replybean import replybean
@@ -23,6 +24,20 @@ class BzhanspiderPipeline(object):
     net_friend_reply_column = 14
     #从第几行开始插入数据
     data_start_row = 3
+    """列宽"""
+    column_width = 20
+    """行高"""
+    row_height = 10
+
+    """标题， 水平居中，垂直居中，不自动换行"""
+    title_alignment = Alignment(horizontal='center', vertical='center', wrap_text=False)
+    """水平居中，垂直居中"""
+    center_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    """水平左对齐，垂直居中"""
+    left_horizontal_center_vertical_alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    """水平左对齐，垂直左对齐"""
+    left_horizontal_and_vertical_alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+
     def __init__(self):
         # pass
         # 初始化一个文件
@@ -78,6 +93,10 @@ class BzhanspiderPipeline(object):
         """插入标题"""
         self.ws.cell(row=1, column=self.video_comment_column).value='UP主与网友互动内容'
         for i in range(1,title_len+1):
+            """标题水平居中"""
+            self.ws.cell(row=1, column=i).alignment = self.center_alignment
+            '''设置列宽'''
+            self.ws.column_dimensions[chr(65 + i - 1)].width = self.column_width
             if i == 12 or i == 13 or i == 14:
                 self.ws.merge_cells(start_row=1, end_row=1, start_column=self.video_comment_column,
                                     end_column=self.net_friend_reply_column)
@@ -89,12 +108,16 @@ class BzhanspiderPipeline(object):
         self.ws.cell(row=2, column=self.video_comment_column).value = '网友评论'
         self.ws.cell(row=2, column=self.up_reply_column).value = 'UP主回复'
         self.ws.cell(row=2, column=self.net_friend_reply_column).value = '网友互动'
+        """标题水平居中"""
+        self.ws.cell(row=2, column=self.video_comment_column).alignment = self.center_alignment
+        self.ws.cell(row=2, column=self.up_reply_column).alignment = self.center_alignment
+        self.ws.cell(row=2, column=self.net_friend_reply_column).alignment = self.center_alignment
 
         # self.ws.append(top_title)
 
     def process_item(self, item, spider):
 
-        print('--------------------- BzhanspiderPipeline, process_item  item: ----------------------\n')
+        print('--------------------- BzhanspiderPipeline, process_item  item start ----------------------\n')
         # print(item)
         if item is None:
             return
@@ -108,30 +131,46 @@ class BzhanspiderPipeline(object):
             row = self.data_start_row#从数据开始行开始插入
             for key in video_reply_map:
                 replybean = video_reply_map[key]
-                print(replybean.to_string())
-                self.ws.cell(row=row, column=self.video_comment_column).value = replybean.get_content()
+                # print(replybean.to_string())
+                cell = self.ws.cell(row=row, column=self.video_comment_column)
+                cell.alignment = self.center_alignment
+                cell.value = 'rpid: ' + replybean.get_rpid_str() \
+                             + ', floor: ' + replybean.get_floor() \
+                             + ', content: ' + replybean.get_content()
                 row += 1
             is_commet_or_reply = True
 
         if 'up_reply_map' in item:
             up_reply_map = item['up_reply_map']
-            print('up_reply_map： \n')
+            # print('up_reply_map： \n')
             row = self.data_start_row  # 从数据开始行开始插入
             for key in up_reply_map:
                 replybean = up_reply_map[key]
-                print(replybean.to_string())
-                self.ws.cell(row=row, column=self.up_reply_column).value = replybean.get_content()
+                # print(replybean.to_string())
+                cell = self.ws.cell(row=row, column=self.up_reply_column)
+                cell.alignment = self.center_alignment
+                cell.value = 'rpid: ' + replybean.get_rpid_str() \
+                             + ', root id: ' + replybean.get_root_str()\
+                             + ', parent id: ' + replybean.get_parent_str()\
+                             + ', floor: ' + replybean.get_floor()\
+                             + ', content: ' + replybean.get_content()
                 row += 1
             is_commet_or_reply = True
 
         if 'net_friend_reply_map' in item:
             net_friend_reply_map = item['net_friend_reply_map']
-            print('net_friend_reply_map： \n')
+            # print('net_friend_reply_map： \n')
             row = self.data_start_row  # 从数据开始行开始插入
             for key in net_friend_reply_map:
                 replybean = net_friend_reply_map[key]
-                print(replybean.to_string())
-                self.ws.cell(row=row, column=self.net_friend_reply_column).value = replybean.get_content()
+                # print(replybean.to_string())
+                cell = self.ws.cell(row=row, column=self.net_friend_reply_column)
+                cell.alignment = self.center_alignment
+                cell.value = 'rpid: ' + replybean.get_rpid_str() \
+                             + ', root id: ' + replybean.get_root_str()\
+                             + ', parent id: ' + replybean.get_parent_str()\
+                             + ', floor: ' + replybean.get_floor()\
+                             + ', content: ' + replybean.get_content()
                 row += 1
             is_commet_or_reply = True
 
@@ -162,9 +201,12 @@ class BzhanspiderPipeline(object):
                     item['up_fans_count'],
                     item['up_play_count']]
             self.ws.append(line)
-        # if spider.is_save:
-        self.wb.save('BZhanVideoInfo.xlsx')
+            for i in range(1, len(line) + 1):
+                self.ws.cell(row=3, column=i).alignment = self.center_alignment
 
+        # if spider.is_save:
+        self.wb.save('BZhanVideoInfo_' + spider.oid + '.xlsx')
+        print('--------------------- BzhanspiderPipeline, process_item item end ----------------------\n')
         return item
 
 # def open_spider(self, spider):

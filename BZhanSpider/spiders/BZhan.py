@@ -34,7 +34,8 @@ class BzhanSpider(scrapy.Spider):
     start_url = input('请输入要抓取B站视频信息的网址, 按回车结束: \n')
     start_url_parse = parse.urlparse(start_url)
     start_url_path = start_url_parse.path
-    start_urls = ['http://www.bilibili.com/video/av48323686/']
+    start_urls = [start_url]
+    # start_urls = ['http://www.bilibili.com/video/av48323686/']
 
     # # https: // api.bilibili.com / x / web - interface / view?aid = 48465492
     # # start_urls = ['https://api.bilibili.com/x/web-interface/view?aid=48465492']#播放界面数据类型json\
@@ -63,7 +64,7 @@ class BzhanSpider(scrapy.Spider):
     # 从start_url分解出来的path里面过滤
     start_url_path_split = start_url_path.split('/')[2]  # 分割后获取形如av48323686这个块
     oid = start_url_path_split[2:]  # 去掉av留下视频id
-    print('---------------------视频id：' + oid + ' ------------------------')
+    print('-------------------视频id：' + oid + ' -------------------')
 
     # 视频评论列表
     video_reply_map = collections.OrderedDict()
@@ -168,7 +169,7 @@ class BzhanSpider(scrapy.Spider):
 
         page_data_url = 'http://www.bilibili.com/video/av48323686'  # 界面数据，无法获取数量
         # yield scrapy.Request(url= page_data_url, callback=self.parse_video_page, dont_filter=True)
-        print('--------------parse end-----------------')
+        print('-------------------parse end-------------------')
 
     """
     请求当前页的数据
@@ -182,12 +183,12 @@ class BzhanSpider(scrapy.Spider):
     """
 
     def up_page_parse(self, response):
-        print('-----------------up_page_parse start------------------')
+        print('-------------------up_page_parse start-------------------')
         # print(response.text)
         # return
         status = response.status
         if status != 200:
-            print('request failed, status: ' + status)
+            print('-------------------request failed, status: ' + status)
             return
         item = BzhanspiderItem();
 
@@ -262,20 +263,20 @@ class BzhanSpider(scrapy.Spider):
         # #关闭浏览器
         # SeleniumMiddleware.__del__(self)
 
-        print('--------------------up_page_parse end-------------------')
+        print('-------------------up_page_parse end-------------------')
 
     """
     请求视频的评论，分为网友评论和up主评论分类存储
     """
 
     def video_comment_parse(self, response):
-        print('-----------------------------video_comment_parse start-----------------------------')
+        print('-------------------video_comment_parse start-------------------')
         if response is None or response.body is None:
             return
 
         status = response.status
         if status != 200:
-            print('request failed, status: ' + status)
+            print('-------------------request failed, status: ' + status)
             return
         # 回复评论的的url
         reply_comment_url = 'https://api.bilibili.com/x/v2/reply/reply?callback=jQuery17208938958981882081_1554882206023&jsonp=jsonp&pn=1&type=1&oid=48323686&ps=10&root=1503675439&=1554890310602'
@@ -303,38 +304,40 @@ class BzhanSpider(scrapy.Spider):
             """所有评论及回复只赋值一次，避免多次赋值导致爬取的和获取的acount数量不匹配导致不能存储"""
             if self.total_reply_count == 0 and page['acount'] > 0:
                 self.total_reply_count = page['acount']
-            print('------------评论及回复总数： ' + str(self.total_reply_count))
+            print('-------------------评论及回复总数： ' + str(self.total_reply_count))
             current_page = page['num']
             item = BzhanspiderItem()
 
             comment_page_count = calculate_comment_page_count(page, True)
             hot_comments_url = 'https://api.bilibili.com/x/v2/reply?callback=&jsonp=jsonp&pn=1&type=1&oid=48323686&sort=2'
 
-            for reply in replies:
-                bean = get_reply_bean(reply, oid)
-                # print(bean.to_string())
-                # 视频评论保存
-                if bean.get_mid() == upper['mid']:
-                    self.up_reply_map[bean.get_rpid_str()] = bean
-                else:
-                    self.video_reply_map[bean.get_rpid_str()] = bean
+            """遍历当前页的评论并分类保存"""
+            if replies is not None:
+                for reply in replies:
+                    bean = get_reply_bean(reply, oid)
+                    # print(bean.to_string())
+                    # 视频评论保存
+                    if bean.get_mid() == str(upper['mid']):
+                        self.up_reply_map[bean.get_rpid_str()] = bean
+                    else:
+                        self.video_reply_map[bean.get_rpid_str()] = bean
 
-                # 判断评论下面的回复是否存在，存在的话，继续遍历回复列表在comment_reply_parse里面处理所有回复
-                comment_replies = reply['replies']
-                if comment_replies is not None:
-                    comment_reply_current_page = 1  # 默认请求第一页的的回复
-                    yield scrapy.Request(url=self.reply_comment_base_url % (
-                        str(comment_reply_current_page), self.oid, bean.get_rpid_str()),
-                                         callback=self.comment_reply_parse,
-                                         dont_filter=True,
-                                         meta={'is_request_without_browser': True,
-                                               'comment_reply_current_page': page,
-                                               'root': bean.get_rpid_str()})
+                    # 判断评论下面的回复是否存在，存在的话，继续遍历回复列表在comment_reply_parse里面处理所有回复
+                    comment_replies = reply['replies']
+                    if comment_replies is not None:
+                        comment_reply_current_page = 1  # 默认请求第一页的的回复
+                        yield scrapy.Request(url=self.reply_comment_base_url % (
+                            str(comment_reply_current_page), self.oid, bean.get_rpid_str()),
+                                             callback=self.comment_reply_parse,
+                                             dont_filter=True,
+                                             meta={'is_request_without_browser': True,
+                                                   'comment_reply_current_page': page,
+                                                   'root': bean.get_rpid_str()})
 
             # self.add_comments_to_map(hots)
             # self.add_comments_to_map(replies)
             page = current_page + 1
-            if self.total_reply_count >= page > 0:
+            if comment_page_count >= page > 0:
                 yield scrapy.Request(url=self.video_comment_url % (str(page), self.oid),
                                      callback=self.video_comment_parse,
                                      dont_filter=True,
@@ -342,7 +345,7 @@ class BzhanSpider(scrapy.Spider):
                                            'comment_page_count': comment_page_count,
                                            'current_page': page})
             else:
-                if Is_yield_comments_and_reply_to_pipelines(42, self.video_reply_map, self.net_friend_reply_map,
+                if Is_yield_comments_and_reply_to_pipelines(self.total_reply_count, self.video_reply_map, self.net_friend_reply_map,
                                                             self.up_reply_map):
                     # if 'video_reply_map' in item:
                     item['video_reply_map'] = self.video_reply_map
@@ -358,18 +361,18 @@ class BzhanSpider(scrapy.Spider):
                 # item['video_reply_map'] = self.video_reply_map
                 # length = len(self.video_reply_map) + len(self.net_friend_reply_map) + len(self.up_reply_map)
                 # if length >= 42:
-                #     print('----------------------video_comment_parse------------------抓取完成， 返回评论 map 总和: ' + str(length) + '-------------------------------------------------------')
+                #     print('-------------------video_comment_parse------------------抓取完成， 返回评论 map 总和: ' + str(length) + '-------------------------------------------------------')
                 #     yield item
         except TimeoutError as e:
-            print('评论抓取失败, 失败原因' + str(e))
-        print('-----------------------------video_comment_parse end-----------------------------')
+            print('-------------------评论抓取失败, 失败原因' + str(e))
+        print('-------------------video_comment_parse end-------------------')
 
     """
     处理评论下的回复，包括网友回复、up主回复，分类存储
     """
 
     def comment_reply_parse(self, response):
-        print('-----------------------------comment_reply_parse start-----------------------------')
+        print('-------------------comment_reply_parse start-------------------')
         try:
             oid = ''
             up_mid = ''
@@ -396,41 +399,43 @@ class BzhanSpider(scrapy.Spider):
             comment_reply_current_page = page['num']
             comment_reply_page_count = calculate_comment_page_count(page, False)
 
-            print('comment_reply_current_page' + str(comment_reply_current_page))
-            print('comment_reply_page_count' + str(comment_reply_page_count))
+            print('-------------------comment_reply_current_page: ' + str(comment_reply_current_page))
+            print('-------------------comment_reply_page_count: ' + str(comment_reply_page_count))
 
-            for reply in replies:
-                bean = get_reply_bean(reply, oid)
-                print(bean.to_string())
+            """遍历当前评论的回复并分类保存"""
+            if replies is not None:
+                for reply in replies:
+                    bean = get_reply_bean(reply, oid)
+                    # print(bean.to_string())
 
-                # 评论下的回复进行保存，分网友和up主两类
-                if bean.get_mid() == upper['mid']:
-                    self.up_reply_map[bean.get_rpid_str()] = bean
-                else:
-                    self.net_friend_reply_map[bean.get_rpid_str()] = bean
+                    # 评论下的回复进行保存，分网友和up主两类
+                    if bean.get_mid() == str(upper['mid']):
+                        self.up_reply_map[bean.get_rpid_str()] = bean
+                    else:
+                        self.net_friend_reply_map[bean.get_rpid_str()] = bean
 
-                comment_replies = reply['replies']  # 评论下面的回复
+                    comment_replies = reply['replies']  # 评论下面的回复
 
-                if comment_replies is not None:
-                    page = 1
-                    if comment_reply_page_count >= page > 0:
-                        yield scrapy.Request(url=self.reply_comment_base_url % (str(page), oid, bean.get_root_str()),
-                                             callback=self.comment_reply_parse,
-                                             dont_filter=True,
-                                             meta={'is_request_without_browser': True,
-                                                   'root': bean.get_root_str()})
-            length = len(self.video_reply_map) + len(self.net_friend_reply_map) + len(self.up_reply_map)
+                    if comment_replies is not None:
+                        page = 1
+                        if comment_reply_page_count >= page > 0:
+                            yield scrapy.Request(
+                                url=self.reply_comment_base_url % (str(page), self.oid, bean.get_root_str()),
+                                callback=self.comment_reply_parse,
+                                dont_filter=True,
+                                meta={'is_request_without_browser': True,
+                                      'root': bean.get_root_str()})
 
-            page = comment_reply_page_count + 1
+            page = comment_reply_current_page + 1
             if comment_reply_page_count >= page > 0:
-                yield scrapy.Request(url=self.reply_comment_base_url % (str(page), oid, root),
+                yield scrapy.Request(url=self.reply_comment_base_url % (str(page), self.oid, root),
                                      callback=self.comment_reply_parse,
                                      dont_filter=True,
                                      meta={'is_request_without_browser': True,
                                            'current_page': page,
                                            'root': root})
             else:
-                if Is_yield_comments_and_reply_to_pipelines(42, self.video_reply_map, self.net_friend_reply_map,
+                if Is_yield_comments_and_reply_to_pipelines(self.total_reply_count, self.video_reply_map, self.net_friend_reply_map,
                                                             self.up_reply_map):
                     # if 'video_reply_map' in item:
                     item['video_reply_map'] = self.video_reply_map
@@ -450,20 +455,20 @@ class BzhanSpider(scrapy.Spider):
                 #     # print('--------------------------comment_reply_parse--------------抓取完成， 返回评论 map 总和: ' + str(length) + '-------------------------------------------------------')
                 #     yield item
         except TimeoutError as e:
-            print('评论下的回复抓取失败, 失败原因' + str(e))
-        print('-----------------------------comment_reply_parse end-----------------------------')
+            print('-------------------评论下的回复抓取失败, 失败原因' + str(e))
+        print('-------------------comment_reply_parse end-------------------')
 
-    def add_comments_to_map(replies):
-        if 0 >= len(replies):
-            return
-
-        for reply in replies:
-            ctime = reply['ctime']
-            time = time.strftime('%Y-%m-%d %H:%M:%S', reply['ctime'])
-            content = reply['content']
-            message = content['message']
-
-        pass
+    # def add_comments_to_map(replies):
+    #     if 0 >= len(replies):
+    #         return
+    #
+    #     for reply in replies:
+    #         ctime = reply['ctime']
+    #         time = time.strftime('%Y-%m-%d %H:%M:%S', reply['ctime'])
+    #         content = reply['content']
+    #         message = content['message']
+    #
+    #     pass
 
 
 """
@@ -517,10 +522,10 @@ def calculate_comment_page_count(page, is_video_comment=True):
     if count % size > 0:
         page_count += 1
     if is_video_comment:
-        print('评论: 所有评论数(包括视频评论和评论下的回复)：' + str(acount) + ', 视频评论数：' + str(count)
+        print('-------------------爬取中---评论: 所有评论数(包括视频评论和评论下的回复)：' + str(acount) + ', 视频评论数：' + str(count)
               + ', 总页数：' + str(page_count) + ', 当前第' + str(num) + '页， 每一页个数：' + str(size))
     else:
-        print('回复: 当前视频评论下的回复数：' + str(count) + ', 总页数：' + str(page_count)
+        print('-------------------爬取中---回复: 当前视频评论下的回复数：' + str(count) + ', 总页数：' + str(page_count)
               + ', 当前第' + str(num) + '页， 每一页个数：' + str(size))
     return page_count
 
@@ -530,16 +535,20 @@ def Is_yield_comments_and_reply_to_pipelines(comment_reply_total_count, video_re
     # print(self.video_reply_map)
     item = BzhanspiderItem()
     length = len(video_reply_map) + len(net_friend_reply_map) + len(up_reply_map)
-    print('----------------------video_comment_parse------------------抓取完成， 返回评论 map 总和: ' + str(
-        length) + '-------------------------------------------------------')
+    print('-------------------评论及回复是否保存判断， 总评论及回复数:' + str(comment_reply_total_count)
+          + '， 当前爬到的评论及回复总数量: ' + str(length) + ', 当前爬到的视频回复数量：' + str(len(video_reply_map))
+          + ', 当前爬到的回复总数'+ str(len(net_friend_reply_map) + len(up_reply_map))
+          + '--------------------------------------\n')
 
     if length >= comment_reply_total_count:
+        print('-------------------所有评论及回复爬取完成，保存-------------------\n')
         return True
     else:
+        print('-------------------所有评论及回复爬取未完成，继续爬取ing-------------------\n')
         return False
 
 
 @staticmethod
 def close(spider, reason):
-    print('--------------------------------------------------BZhanSpider close----------------------------------------')
+    print('-------------------BZhanSpider close-------------------')
     yield spider.item
