@@ -134,9 +134,10 @@ class BzhanspiderPipeline(object):
                 # print(replybean.to_string())
                 cell = self.ws.cell(row=row, column=self.video_comment_column)
                 cell.alignment = self.center_alignment
-                cell.value = 'rpid: ' + replybean.get_rpid_str() \
-                             + ', floor: ' + replybean.get_floor() \
-                             + ', content: ' + replybean.get_content()
+                # cell.value = 'rpid: ' + replybean.get_rpid_str() \
+                #              + ', floor: ' + replybean.get_floor() \
+                #              + ', content: ' + replybean.get_content()
+                cell.value = replybean.get_content()
                 row += 1
             is_commet_or_reply = True
 
@@ -149,11 +150,12 @@ class BzhanspiderPipeline(object):
                 # print(replybean.to_string())
                 cell = self.ws.cell(row=row, column=self.up_reply_column)
                 cell.alignment = self.center_alignment
-                cell.value = 'rpid: ' + replybean.get_rpid_str() \
-                             + ', root id: ' + replybean.get_root_str()\
-                             + ', parent id: ' + replybean.get_parent_str()\
-                             + ', floor: ' + replybean.get_floor()\
-                             + ', content: ' + replybean.get_content()
+                # cell.value = 'rpid: ' + replybean.get_rpid_str() \
+                #              + ', root id: ' + replybean.get_root_str()\
+                #              + ', parent id: ' + replybean.get_parent_str()\
+                #              + ', floor: ' + replybean.get_floor()\
+                #              + ', content: ' + replybean.get_content()
+                cell.value = replybean.get_content()
                 row += 1
             is_commet_or_reply = True
 
@@ -166,11 +168,12 @@ class BzhanspiderPipeline(object):
                 # print(replybean.to_string())
                 cell = self.ws.cell(row=row, column=self.net_friend_reply_column)
                 cell.alignment = self.center_alignment
-                cell.value = 'rpid: ' + replybean.get_rpid_str() \
-                             + ', root id: ' + replybean.get_root_str()\
-                             + ', parent id: ' + replybean.get_parent_str()\
-                             + ', floor: ' + replybean.get_floor()\
-                             + ', content: ' + replybean.get_content()
+                # cell.value = 'rpid: ' + replybean.get_rpid_str() \
+                #              + ', root id: ' + replybean.get_root_str()\
+                #              + ', parent id: ' + replybean.get_parent_str()\
+                #              + ', floor: ' + replybean.get_floor()\
+                #              + ', content: ' + replybean.get_content()
+                cell.value = replybean.get_content()
                 row += 1
             is_commet_or_reply = True
 

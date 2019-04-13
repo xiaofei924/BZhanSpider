@@ -536,7 +536,7 @@ def Is_yield_comments_and_reply_to_pipelines(comment_reply_total_count, video_re
     item = BzhanspiderItem()
     length = len(video_reply_map) + len(net_friend_reply_map) + len(up_reply_map)
     print('-------------------评论及回复是否保存判断， 总评论及回复数:' + str(comment_reply_total_count)
-          + '， 当前爬到的评论及回复总数量: ' + str(length) + ', 当前爬到的视频回复数量：' + str(len(video_reply_map))
+          + '， 当前爬到的评论及回复总数量: ' + str(length) + '\n-------------------当前爬到的视频回复数量：' + str(len(video_reply_map))
           + ', 当前爬到的回复总数'+ str(len(net_friend_reply_map) + len(up_reply_map))
           + '--------------------------------------\n')
 
