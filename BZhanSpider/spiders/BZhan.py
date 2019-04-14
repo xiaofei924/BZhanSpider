@@ -62,12 +62,9 @@ class BzhanSpider(scrapy.Spider):
 
     # 视频的id
     # 从start_url分解出来的path里面过滤
-    if start_url_path is not None and len(start_url_path) > 0:
-        start_url_path_split = start_url_path.split('/')[2]  # 分割后获取形如av48323686这个块
-        oid = start_url_path_split[2:]  # 去掉av留下视频id
-        print('-------------------视频id：' + oid + ' -------------------')
-    else:
-        print('-------------------url不正确，请重新输入-------------------')
+    start_url_path_split = start_url_path.split('/')[2]  # 分割后获取形如av48323686这个块
+    oid = start_url_path_split[2:]  # 去掉av留下视频id
+    print('-------------------视频id：' + oid + ' -------------------')
 
     # 视频评论列表
     video_reply_map = collections.OrderedDict()
@@ -88,7 +85,7 @@ class BzhanSpider(scrapy.Spider):
         # title = response.css('.tit tr-fix::text').extract_first()
         # title = response.xpath('/html/body/div[3]/div/div[1]/div[1]/h1/span/text()').extract_first()
 
-        title = response.xpath('/html/body/div[3]/div/div[1]/div[1]/h1/span/text()').extract_first()
+        title = response.xpath('//span[@class="tit tr-fix"]/text()').extract_first()
         column = response.xpath('//span[@class="a-crumbs"]/a[@target="_blank"]/text()').extract_first()
         publish_date = response.xpath('//div[@class="video-data"]/span[2]/text()').extract_first()
         ranking = ''
