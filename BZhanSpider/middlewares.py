@@ -185,32 +185,63 @@ class SeleniumMiddleware(object):
         :return: HtmlResponse
         """
 
-        is_request_without_browser = False
-
-        try:
-            is_request_without_browser = request.meta['is_request_without_browser']
-        except Exception:
-            is_request_without_browser = False
-        # print('******ChromeDriver is Starting******')
-        if is_request_without_browser:
-            print('-------------------SeleniumMiddleware, no need use browser, just request url: ' + request.url)
-            time.sleep(1)
-            return None
-        else:
+        if spider.name == 'BZhanSearchInfo':
             print('-------------------SeleniumMiddleware, ChromeDriver is Starting---------------------------')
+
             try:
-                self.browser.get(request.url)
+                meta = request.meta
                 # self.browser.execute_script('window.scrollTo(0, document.body.scrollHeight)')
-                self.browser.execute_script(self.js)#滚动到最底部
+                self.browser.execute_script(self.js)  # 滚动到最底部
+
+
+                self.browser.get(request.url)
             except TimeoutException as e:
                 print('-------------------------请求超时------------------------')
                 self.browser.execute_script('window.stop()')
                 return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
-                            request=request, status=500)
+                                    request=request, status=500)
             else:
-                time.sleep(10)
-                return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
-                        request=request,status=200)
+                time.sleep(8)
+                url = self.browser.current_url
+                print('-------------------点击前url：' + str(url))
+                if 'click_xpath' in meta:
+                    click_xpath = meta['click_xpath']
+                    self.browser.find_element_by_xpath(click_xpath).click()
+                    time.sleep(8)
+                url = self.browser.current_url
+                print('-------------------点击后url：' + str(url))
+                return HtmlResponse(url=url, body=self.browser.page_source, encoding="utf-8",
+                                    request=request, status=200)
+            pass
+
+        if spider.name == 'BZhan':
+
+            is_request_without_browser = False
+
+            try:
+                is_request_without_browser = request.meta['is_request_without_browser']
+            except Exception:
+                is_request_without_browser = False
+            # print('******ChromeDriver is Starting******')
+            if is_request_without_browser:
+                print('-------------------SeleniumMiddleware, no need use browser, just request url: ' + request.url)
+                time.sleep(1)
+                return None
+            else:
+                print('-------------------SeleniumMiddleware, ChromeDriver is Starting---------------------------')
+                try:
+                    self.browser.get(request.url)
+                    # self.browser.execute_script('window.scrollTo(0, document.body.scrollHeight)')
+                    self.browser.execute_script(self.js)#滚动到最底部
+                except TimeoutException as e:
+                    print('-------------------------请求超时------------------------')
+                    self.browser.execute_script('window.stop()')
+                    return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
+                                request=request, status=500)
+                else:
+                    time.sleep(10)
+                    return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
+                            request=request,status=200)
 
     def close_browser(self):
         self.browser.close()
