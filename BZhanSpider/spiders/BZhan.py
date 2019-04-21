@@ -99,7 +99,8 @@ class BzhanSpider(scrapy.Spider):
         favorite_count = response.xpath('/html/body/div[3]/div/div[1]/div[3]/div[1]/span[3]/text()').extract_first()
         text_introduce = response.xpath('/html/body/div[3]/div/div[1]/div[4]/div[1]/text()').extract()
         keywords_tag = response.xpath('/html/body/div[3]/div/div[1]/div[5]/ul//text()').extract()
-
+        video_time = response.xpath('//span[@class="bilibili-player-video-time-total"]/text()').extract_first()
+        print('-------------------' + str(video_time))
         # comment_page_count = response.xpath('//div[@class="header-page paging-box"]/a[@class="tcd-number"]/text()').extract()[-1]
         # print(comment_page_count)
         #
@@ -110,9 +111,12 @@ class BzhanSpider(scrapy.Spider):
         comment_page_count = 3
         if len(text_introduce) > 0:
             text_introduce = '\n'.join(text_introduce)
-
+        else:
+            text_introduce = ''
         if len(keywords_tag) > 0:
             keywords_tag = '\n'.join(keywords_tag)
+        else:
+            keywords_tag = ''
         # resp = json.loads(response.body, encoding='utf-8')
         # data = resp['data']
         # stat = data['stat']
@@ -167,7 +171,7 @@ class BzhanSpider(scrapy.Spider):
                                                                                            'text_introduce': text_introduce,
                                                                                            'keywords_tag': keywords_tag,
                                                                                            'up_comments': up_comments,
-
+                                                                                           'video_time': video_time,
                                                                                            })
 
         page_data_url = 'http://www.bilibili.com/video/av48323686'  # 界面数据，无法获取数量
@@ -193,7 +197,7 @@ class BzhanSpider(scrapy.Spider):
         if status != 200:
             print('-------------------request failed, status: ' + status)
             return
-        item = BzhanspiderItem();
+        item = BzhanspiderItem()
 
         title = response.meta['title']
         column = response.meta['column']
@@ -207,6 +211,7 @@ class BzhanSpider(scrapy.Spider):
         text_introduce = response.meta['text_introduce']
         keywords_tag = response.meta['keywords_tag']
         up_comments = response.meta['up_comments']
+        video_time = response.meta['video_time']
 
         up_name = response.xpath('//*[@id="h-name"]/text()').extract_first()
         up_introduction = response.xpath(
@@ -238,6 +243,7 @@ class BzhanSpider(scrapy.Spider):
         print("up_focus_count---------------------" + str(up_focus_count))
         print("up_fans_count---------------------" + str(up_fans_count))
         print("up_play_count---------------------" + str(up_play_count))
+        print("video_time---------------------" + str(video_time))
 
         item['title'] = title
         item['column'] = column
@@ -258,6 +264,7 @@ class BzhanSpider(scrapy.Spider):
         item['up_focus_count'] = up_focus_count
         item['up_fans_count'] = up_fans_count
         item['up_play_count'] = up_play_count
+        item['video_time'] = video_time
         # self.is_save = True
 
         # 回调item数据给pipelines
@@ -312,7 +319,7 @@ class BzhanSpider(scrapy.Spider):
             item = BzhanspiderItem()
 
             comment_page_count = calculate_comment_page_count(page, True)
-            hot_comments_url = 'https://api.bilibili.com/x/v2/reply?callback=&jsonp=jsonp&pn=1&type=1&oid=48323686&sort=2'
+            hot_comments_url = 'https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=1&type=1&oid=48323686&sort=0'
 
             """遍历当前页的评论并分类保存"""
             if replies is not None:
@@ -348,7 +355,8 @@ class BzhanSpider(scrapy.Spider):
                                            'comment_page_count': comment_page_count,
                                            'current_page': page})
             else:
-                if Is_yield_comments_and_reply_to_pipelines(self.total_reply_count, self.video_reply_map, self.net_friend_reply_map,
+                if Is_yield_comments_and_reply_to_pipelines(self.total_reply_count, self.video_reply_map,
+                                                            self.net_friend_reply_map,
                                                             self.up_reply_map):
                     # if 'video_reply_map' in item:
                     item['video_reply_map'] = self.video_reply_map
@@ -438,7 +446,8 @@ class BzhanSpider(scrapy.Spider):
                                            'current_page': page,
                                            'root': root})
             else:
-                if Is_yield_comments_and_reply_to_pipelines(self.total_reply_count, self.video_reply_map, self.net_friend_reply_map,
+                if Is_yield_comments_and_reply_to_pipelines(self.total_reply_count, self.video_reply_map,
+                                                            self.net_friend_reply_map,
                                                             self.up_reply_map):
                     # if 'video_reply_map' in item:
                     item['video_reply_map'] = self.video_reply_map
@@ -540,7 +549,7 @@ def Is_yield_comments_and_reply_to_pipelines(comment_reply_total_count, video_re
     length = len(video_reply_map) + len(net_friend_reply_map) + len(up_reply_map)
     print('-------------------评论及回复是否保存判断， 总评论及回复数:' + str(comment_reply_total_count)
           + '， 当前爬到的评论及回复总数量: ' + str(length) + '\n-------------------当前爬到的视频回复数量：' + str(len(video_reply_map))
-          + ', 当前爬到的回复总数'+ str(len(net_friend_reply_map) + len(up_reply_map))
+          + ', 当前爬到的回复总数' + str(len(net_friend_reply_map) + len(up_reply_map))
           + '--------------------------------------\n')
 
     if length >= comment_reply_total_count:

@@ -30,6 +30,8 @@ class BzhanspiderItem(scrapy.Item):
     text_introduce = scrapy.Field()  # 文字介绍
     keywords_tag = scrapy.Field()  # 关键词tag
     up_comments = scrapy.Field()  # UP主与网友互动内容
+    video_time = scrapy.Field()  # 视频播放时长
+
 
     # 以下是另一个url，对应up主界面的item信息
     up_name = scrapy.Field()  # up主名字

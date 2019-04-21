@@ -9,6 +9,7 @@
 """
 import json
 from openpyxl import Workbook
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.styles import Alignment
 from scrapy.exporters import CsvItemExporter
 
@@ -76,7 +77,8 @@ class BzhanspiderPipeline(object):
                          '认证分类',
                          '关注数',
                          '粉丝数',
-                         '播放数']
+                         '播放数',
+                         '视频时长']
             sub_title = ['',
                          '',
                          '',
@@ -91,6 +93,7 @@ class BzhanspiderPipeline(object):
                          '网友评论',
                          'UP主回复',
                          '网友互动',
+                         '',
                          '',
                          '',
                          '',
@@ -163,7 +166,10 @@ class BzhanspiderPipeline(object):
                     # cell.value = 'rpid: ' + replybean.get_rpid_str() \
                     #              + ', floor: ' + replybean.get_floor() \
                     #              + ', content: ' + replybean.get_content()
-                    cell.value = replybean.get_content()
+                    try:
+                        cell.value = ILLEGAL_CHARACTERS_RE.sub(r'', replybean.get_content())
+                    except Exception as e:
+                        print(e)
                     row += 1
                 is_commet_or_reply = True
 
@@ -181,7 +187,10 @@ class BzhanspiderPipeline(object):
                     #              + ', parent id: ' + replybean.get_parent_str()\
                     #              + ', floor: ' + replybean.get_floor()\
                     #              + ', content: ' + replybean.get_content()
-                    cell.value = replybean.get_content()
+                    try:
+                        cell.value = ILLEGAL_CHARACTERS_RE.sub(r'', replybean.get_content())
+                    except Exception as e:
+                        print(e)
                     row += 1
                 is_commet_or_reply = True
 
@@ -199,7 +208,10 @@ class BzhanspiderPipeline(object):
                     #              + ', parent id: ' + replybean.get_parent_str()\
                     #              + ', floor: ' + replybean.get_floor()\
                     #              + ', content: ' + replybean.get_content()
-                    cell.value = replybean.get_content()
+                    try:
+                        cell.value = ILLEGAL_CHARACTERS_RE.sub(r'', replybean.get_content())
+                    except Exception as e:
+                        print(e)
                     row += 1
                 is_commet_or_reply = True
 
@@ -228,18 +240,19 @@ class BzhanspiderPipeline(object):
                         item['up_certification'],
                         item['up_focus_count'],
                         item['up_fans_count'],
-                        item['up_play_count']]
+                        item['up_play_count'],
+                        item['video_time']]
                 self.ws.append(line)
                 for i in range(1, len(line) + 1):
                     self.ws.cell(row=3, column=i).alignment = self.center_alignment
 
             # if spider.is_save:
-            self.wb.save('BZhanVideoInfo_' + spider.oid + '.xlsx')
+            self.wb.save('/Users/garycong/Desktop/BZhanInfo/BZhanVideoInfo_' + spider.oid + '.xlsx')
             print('--------------------- BzhanspiderPipeline, process_item item end ----------------------\n')
             return item
 
-    def close_spider(self, spider):
-        pass
+    # def close_spider(self, spider):
+    #     pass
         # self.exporter.finish_exporting()
         # self.file.close()
 #

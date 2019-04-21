@@ -4,6 +4,7 @@
 #
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
+import random
 import time
 
 from scrapy import signals
@@ -20,6 +21,8 @@ from twisted.conch.telnet import EC
 中间件处理request和response
 
 """
+
+
 class BzhanspiderSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the spider middleware does not modify the
@@ -117,7 +120,7 @@ class BzhanspiderDownloaderMiddleware(object):
 
 
 class SeleniumMiddleware(object):
-    def __init__(self,timeout=25):
+    def __init__(self, timeout=25):
 
         # 设置selenium不加载图片,固定写法
         chrome_opt = webdriver.ChromeOptions()
@@ -127,11 +130,11 @@ class SeleniumMiddleware(object):
         # chrome_opt.add_argument("--disable-gpu")
 
         prefs = {
-                'profile.default_content_setting_values': {
-                    'images': 2,  # 禁用图片的加载
-                    # 'javascript': 2  # 禁用js，可能会导致通过js加载的互动数抓取失效
-                }
+            'profile.default_content_setting_values': {
+                'images': 2,  # 禁用图片的加载
+                # 'javascript': 2  # 禁用js，可能会导致通过js加载的互动数抓取失效
             }
+        }
         # prefs = {'profile.managed_default_content_settings.images': 2}
         chrome_opt.add_experimental_option('prefs', prefs)
         self.browser = webdriver.Chrome(chrome_options=chrome_opt)
@@ -173,7 +176,6 @@ class SeleniumMiddleware(object):
         scrollToBottom()
         """
 
-
     def __del__(self):
         self.browser.close()
 
@@ -192,7 +194,6 @@ class SeleniumMiddleware(object):
                 meta = request.meta
                 # self.browser.execute_script('window.scrollTo(0, document.body.scrollHeight)')
                 self.browser.execute_script(self.js)  # 滚动到最底部
-
 
                 self.browser.get(request.url)
             except TimeoutException as e:
@@ -225,23 +226,40 @@ class SeleniumMiddleware(object):
             # print('******ChromeDriver is Starting******')
             if is_request_without_browser:
                 print('-------------------SeleniumMiddleware, no need use browser, just request url: ' + request.url)
-                time.sleep(1)
+                time.sleep(0.5)
                 return None
             else:
                 print('-------------------SeleniumMiddleware, ChromeDriver is Starting---------------------------')
                 try:
                     self.browser.get(request.url)
                     # self.browser.execute_script('window.scrollTo(0, document.body.scrollHeight)')
-                    self.browser.execute_script(self.js)#滚动到最底部
+                    self.browser.execute_script(self.js)  # 滚动到最底部
                 except TimeoutException as e:
                     print('-------------------------请求超时------------------------')
                     self.browser.execute_script('window.stop()')
                     return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
-                                request=request, status=500)
+                                        request=request, status=500)
                 else:
-                    time.sleep(10)
+                    time.sleep(5)
                     return HtmlResponse(url=request.url, body=self.browser.page_source, encoding="utf-8",
-                            request=request,status=200)
+                                        request=request, status=200)
 
     def close_browser(self):
         self.browser.close()
+
+
+# class ProxyMiddleware(object):
+#     '''
+#     设置Proxy
+#     '''
+#
+#     def __init__(self, ip):
+#         self.ip = ip
+#
+#     @classmethod
+#     def from_crawler(cls, crawler):
+#         return cls(ip=crawler.settings.get('PROXIES'))
+#
+#     def process_request(self, request, spider):
+#         ip = random.choice(self.ip)
+#         request.meta['proxy'] = ip
